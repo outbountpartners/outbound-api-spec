@@ -61,6 +61,8 @@ openapi-python-client generate --path openapi.yaml
 
 ### Import into ChatGPT Custom GPT
 
+See the [full ChatGPT setup guide](./manifests/chatgpt-setup.md). Short version:
+
 In the GPT Builder → Configure → Actions → Import from URL, paste:
 
 ```
@@ -68,6 +70,8 @@ https://sirhkzqpdgarrcyqnjtl.supabase.co/functions/v1/api/openapi.json
 ```
 
 Set Authentication = API Key, header name `x-api-key`, paste your key.
+
+All write operations carry `x-openai-isConsequential: true`, so ChatGPT prompts the user for confirmation before any POST or PATCH.
 
 ### Import into n8n
 
