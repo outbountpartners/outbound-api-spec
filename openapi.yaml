@@ -1,0 +1,2626 @@
+openapi: 3.1.0
+info:
+  title: Outbound Partners Portal API
+  version: 1.0.0
+  description: Read + write API for the Outbound Partners portal. Covers meetings,
+    clients, campaigns, users, leaderboard, and commission. All requests require
+    an API key in the x-api-key header (issued via the in-portal /api page).
+    Existing standalone endpoints (api-meetings, api-client-targets,
+    api-sdr-performance, api-commission-tracker, api-users) remain available at
+    their original URLs for back-compat.
+  contact:
+    name: Rai
+    email: rai@outboundpartners.com
+servers:
+  - url: https://api.outboundpartners.com
+    description: Production (custom domain — planned)
+  - url: https://sirhkzqpdgarrcyqnjtl.supabase.co/functions/v1/api
+    description: Direct Supabase edge function URL
+tags:
+  - name: meetings
+  - name: clients
+  - name: campaigns
+  - name: users
+  - name: leaderboard
+  - name: commission
+  - name: system
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: Portal API key. Issued via the /api admin page (super-admin only).
+        Scope-checked per endpoint.
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        db:
+          type: string
+        version:
+          type: string
+        server_time:
+          type: string
+      required:
+        - ok
+        - db
+        - version
+        - server_time
+    WhoamiResponse:
+      type: object
+      properties:
+        key_label:
+          type: string
+        key_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        scopes:
+          type: array
+          items:
+            type: string
+        acting_user:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+      required:
+        - key_label
+        - key_id
+        - scopes
+        - acting_user
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                additionalProperties: {}
+          required:
+            - code
+            - message
+      required:
+        - error
+    MeetingContact:
+      type: object
+      properties:
+        name:
+          type:
+            - string
+            - "null"
+        title:
+          type:
+            - string
+            - "null"
+        email:
+          type:
+            - string
+            - "null"
+        phone:
+          type:
+            - string
+            - "null"
+      required:
+        - name
+        - title
+        - email
+        - phone
+    MeetingPipeline:
+      type: object
+      properties:
+        value:
+          type:
+            - number
+            - "null"
+        currency:
+          type:
+            - string
+            - "null"
+        status:
+          type:
+            - string
+            - "null"
+      required:
+        - value
+        - currency
+        - status
+    UserRef:
+      type:
+        - object
+        - "null"
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        deleted:
+          type: boolean
+    ClientRef:
+      type:
+        - object
+        - "null"
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        name:
+          type: string
+        industry:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - name
+        - industry
+    CampaignRef:
+      type:
+        - object
+        - "null"
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        name:
+          type: string
+      required:
+        - id
+        - name
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        date:
+          type: string
+          description: ISO-8601
+        timezone:
+          type:
+            - string
+            - "null"
+        outcome:
+          type: string
+          enum: &a2
+            - scheduled
+            - pending
+            - completed
+            - cancelled
+            - no_show
+            - rescheduled
+            - to_be_rescheduled
+        sub_status:
+          type: array
+          items:
+            type: string
+        company_name:
+          type: string
+        contact:
+          $ref: "#/components/schemas/MeetingContact"
+        notes:
+          type:
+            - string
+            - "null"
+        priority:
+          type:
+            - string
+            - "null"
+        timeline:
+          type:
+            - string
+            - "null"
+        challenge:
+          type:
+            - string
+            - "null"
+        ae_feedback:
+          type:
+            - string
+            - "null"
+        meeting_owner:
+          type:
+            - string
+            - "null"
+        follow_up:
+          type:
+            - string
+            - "null"
+        call_recording_url:
+          type:
+            - string
+            - "null"
+        client_feedback:
+          type:
+            - string
+            - "null"
+        outcome_notes:
+          type:
+            - string
+            - "null"
+        booked_date:
+          type:
+            - string
+            - "null"
+        created_at:
+          type: string
+        pipeline:
+          $ref: "#/components/schemas/MeetingPipeline"
+        sdr:
+          $ref: "#/components/schemas/UserRef"
+        booked_by:
+          $ref: "#/components/schemas/UserRef"
+        client:
+          $ref: "#/components/schemas/ClientRef"
+        campaign:
+          $ref: "#/components/schemas/CampaignRef"
+      required:
+        - id
+        - date
+        - timezone
+        - outcome
+        - sub_status
+        - company_name
+        - contact
+        - notes
+        - priority
+        - timeline
+        - challenge
+        - ae_feedback
+        - meeting_owner
+        - follow_up
+        - call_recording_url
+        - client_feedback
+        - outcome_notes
+        - booked_date
+        - created_at
+        - pipeline
+        - sdr
+        - booked_by
+        - client
+        - campaign
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        has_more:
+          type: boolean
+      required:
+        - total
+        - limit
+        - offset
+        - has_more
+    MeetingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Meeting"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+      required:
+        - data
+        - meta
+    MeetingSingleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Meeting"
+      required:
+        - data
+    PrimaryContact:
+      type: object
+      properties:
+        name:
+          type:
+            - string
+            - "null"
+        email:
+          type:
+            - string
+            - "null"
+        phone:
+          type:
+            - string
+            - "null"
+      required:
+        - name
+        - email
+        - phone
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        name:
+          type: string
+        status:
+          type: string
+          enum: &a6
+            - Active
+            - Inactive
+        client_type:
+          type: string
+          enum: &a5
+            - client
+            - internal
+        industry:
+          type: string
+        parent_client_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        start_date:
+          type:
+            - string
+            - "null"
+        renewal_date:
+          type:
+            - string
+            - "null"
+        renewal_status:
+          type:
+            - string
+            - "null"
+          enum: &a7
+            - Pending
+            - Renewed
+            - Did not renew
+        mrr_gbp:
+          type:
+            - number
+            - "null"
+        logo:
+          type:
+            - string
+            - "null"
+        internal_notes:
+          type:
+            - string
+            - "null"
+        churn_reason:
+          type:
+            - string
+            - "null"
+          enum: &a8
+            - Budget cut
+            - Internal hire
+            - Change in strategy
+            - Poor performance
+            - Product market shift
+            - Timing not right
+            - Stakeholder change
+            - Procurement or legal delay
+            - Moved to competitor
+            - Other
+        churn_reason_notes:
+          type:
+            - string
+            - "null"
+        primary_contact:
+          $ref: "#/components/schemas/PrimaryContact"
+        campaign_count:
+          type: number
+        user_count:
+          type: number
+        created_at:
+          type: string
+      required:
+        - id
+        - name
+        - status
+        - client_type
+        - industry
+        - parent_client_id
+        - start_date
+        - renewal_date
+        - renewal_status
+        - mrr_gbp
+        - logo
+        - internal_notes
+        - churn_reason
+        - churn_reason_notes
+        - primary_contact
+        - created_at
+    ClientListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Client"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+      required:
+        - data
+        - meta
+    ClientSingleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Client"
+      required:
+        - data
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        name:
+          type: string
+        client_id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        client_name:
+          type:
+            - string
+            - "null"
+        status:
+          type: string
+          enum: &a10
+            - active
+            - paused
+            - completed
+        campaign_type:
+          type: string
+          enum: &a9
+            - client
+            - internal
+        start_date:
+          type: string
+        end_date:
+          type: string
+        campaign_manager_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        notes:
+          type:
+            - string
+            - "null"
+        overall_target:
+          type: integer
+        overall_progress:
+          type: integer
+        monthly_meeting_target:
+          type:
+            - integer
+            - "null"
+        monthly_targets:
+          type: object
+          additionalProperties:
+            type: number
+        monthly_progress:
+          type: object
+          additionalProperties:
+            type: number
+        created_at:
+          type: string
+      required:
+        - id
+        - name
+        - client_id
+        - client_name
+        - status
+        - campaign_type
+        - start_date
+        - end_date
+        - campaign_manager_id
+        - notes
+        - overall_target
+        - overall_progress
+        - monthly_meeting_target
+        - monthly_targets
+        - monthly_progress
+        - created_at
+    CampaignListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Campaign"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+      required:
+        - data
+        - meta
+    CampaignSingleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Campaign"
+      required:
+        - data
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: &a1
+            - admin
+            - super_admin
+            - sdr
+            - client_user
+        is_active:
+          type: boolean
+        deactivated_at:
+          type:
+            - string
+            - "null"
+        client_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        location:
+          type:
+            - string
+            - "null"
+          enum: &a11
+            - UK
+            - SA
+        visible_campaign_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+        meetings_only_access:
+          type: boolean
+        hide_performance_metrics:
+          type: boolean
+        can_view_client_overview:
+          type: boolean
+        is_test_account:
+          type: boolean
+        created_at:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - role
+        - is_active
+        - deactivated_at
+        - client_id
+        - location
+        - visible_campaign_ids
+        - meetings_only_access
+        - hide_performance_metrics
+        - can_view_client_overview
+        - is_test_account
+        - created_at
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+      required:
+        - data
+        - meta
+    UserSingleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+      required:
+        - data
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        email:
+          type: string
+        name:
+          type:
+            - string
+            - "null"
+        role:
+          type: string
+          enum: *a1
+        client_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        visible_campaign_ids:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+        status:
+          type: string
+        invited_at:
+          type: string
+        invited_by:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+      required:
+        - id
+        - email
+        - name
+        - role
+        - client_id
+        - visible_campaign_ids
+        - status
+        - invited_at
+        - invited_by
+    InviteResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            invitation:
+              $ref: "#/components/schemas/Invitation"
+            invitation_url:
+              type: string
+              format: uri
+            email_sent:
+              type: boolean
+            email_error:
+              type:
+                - string
+                - "null"
+          required:
+            - invitation
+            - invitation_url
+            - email_sent
+            - email_error
+      required:
+        - data
+    LeaderboardRow:
+      type: object
+      properties:
+        rank:
+          type: integer
+        sdr_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        sdr_email:
+          type: string
+        sdr_name:
+          type: string
+        location:
+          type:
+            - string
+            - "null"
+        is_active:
+          type:
+            - boolean
+            - "null"
+        dials:
+          type: integer
+        connects:
+          type: integer
+        meetings_booked:
+          type: integer
+        meetings_seen:
+          type: integer
+        connect_rate:
+          type: number
+        conversion_rate:
+          type: number
+        show_rate:
+          type: number
+        avg_call_duration:
+          type: integer
+        total_call_duration:
+          type: integer
+      required:
+        - rank
+        - sdr_id
+        - sdr_email
+        - sdr_name
+        - location
+        - is_active
+        - dials
+        - connects
+        - meetings_booked
+        - meetings_seen
+        - connect_rate
+        - conversion_rate
+        - show_rate
+        - avg_call_duration
+        - total_call_duration
+    LeaderboardResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        period_start:
+          type: string
+        period_end:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardRow"
+      required:
+        - period
+        - period_start
+        - period_end
+        - data
+    CommissionRow:
+      type: object
+      properties:
+        sdr_id:
+          type: string
+          format: uuid
+          example: 11111111-2222-4333-8444-555555555555
+        sdr_name:
+          type: string
+        sdr_email:
+          type: string
+        sdr_location:
+          type:
+            - string
+            - "null"
+        is_active:
+          type: boolean
+        month:
+          type: string
+        target_meetings:
+          type: integer
+        target_source:
+          type: string
+          enum:
+            - custom
+            - default
+        meetings_completed:
+          type: integer
+        percentage_achieved:
+          type: number
+        commission_system:
+          type: string
+          enum:
+            - 2026+
+            - legacy
+        commission_rate_per_meeting:
+          type: number
+        commission_tier_label:
+          type: string
+        commission_amount:
+          type: number
+        currency:
+          type: string
+      required:
+        - sdr_id
+        - sdr_name
+        - sdr_email
+        - sdr_location
+        - is_active
+        - month
+        - target_meetings
+        - target_source
+    CommissionResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommissionRow"
+        month:
+          type: string
+      required:
+        - data
+        - month
+  parameters: {}
+paths:
+  /health:
+    get:
+      tags:
+        - system
+      summary: Liveness check
+      description: No auth required.
+      security: []
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /whoami:
+    get:
+      tags:
+        - system
+      summary: Inspect the calling API key
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: Key info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhoamiResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/meetings:
+    get:
+      tags:
+        - meetings
+      summary: List meetings
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: client_id
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: sdr_id
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: campaign_id
+          in: query
+        - schema:
+            type: string
+            enum: *a2
+          required: false
+          name: outcome
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: sub_status
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: date_from
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: date_to
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: booked_from
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: booked_to
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+          required: false
+          name: offset
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: sort
+          in: query
+      responses:
+        "200":
+          description: Page of meetings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingListResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - meetings
+      summary: Create a meeting
+      security:
+        - apiKey: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                timezone:
+                  type: string
+                  default: UTC+00:00
+                client_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                campaign_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                company_name:
+                  type: string
+                  minLength: 1
+                contact:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                    title:
+                      type: string
+                      default: ""
+                    email:
+                      type: string
+                      default: ""
+                    phone:
+                      type: string
+                      default: ""
+                  required:
+                    - name
+                sdr_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                booked_by:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                outcome:
+                  type: string
+                  enum: *a2
+                  default: scheduled
+                sub_status:
+                  type: array
+                  items:
+                    type: string
+                  default: []
+                notes:
+                  type:
+                    - string
+                    - "null"
+                priority:
+                  type:
+                    - string
+                    - "null"
+                timeline:
+                  type:
+                    - string
+                    - "null"
+                challenge:
+                  type:
+                    - string
+                    - "null"
+                ae_feedback:
+                  type:
+                    - string
+                    - "null"
+                meeting_owner:
+                  type:
+                    - string
+                    - "null"
+                follow_up:
+                  type:
+                    - string
+                    - "null"
+                call_recording_url:
+                  type:
+                    - string
+                    - "null"
+                client_feedback:
+                  type:
+                    - string
+                    - "null"
+                outcome_notes:
+                  type:
+                    - string
+                    - "null"
+                booked_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                pipeline:
+                  type: object
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                    currency:
+                      type: string
+                      enum: &a3
+                        - USD
+                        - GBP
+                      default: GBP
+                    status:
+                      type:
+                        - string
+                        - "null"
+                      enum: &a4
+                        - closed_won
+                        - closed_lost
+              required:
+                - date
+                - client_id
+                - campaign_id
+                - company_name
+                - contact
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/meetings/{id}:
+    get:
+      tags:
+        - meetings
+      summary: Get a single meeting
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: Meeting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - meetings
+      summary: Update a meeting
+      description: Partial update. When client_feedback transitions empty → non-empty,
+        fires admin email notifications.
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                timezone:
+                  type: string
+                client_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                campaign_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                company_name:
+                  type: string
+                  minLength: 1
+                contact:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                    title:
+                      type: string
+                      default: ""
+                    email:
+                      type: string
+                      default: ""
+                    phone:
+                      type: string
+                      default: ""
+                sdr_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                booked_by:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                outcome:
+                  type: string
+                  enum: *a2
+                sub_status:
+                  type: array
+                  items:
+                    type: string
+                notes:
+                  type:
+                    - string
+                    - "null"
+                priority:
+                  type:
+                    - string
+                    - "null"
+                timeline:
+                  type:
+                    - string
+                    - "null"
+                challenge:
+                  type:
+                    - string
+                    - "null"
+                ae_feedback:
+                  type:
+                    - string
+                    - "null"
+                meeting_owner:
+                  type:
+                    - string
+                    - "null"
+                follow_up:
+                  type:
+                    - string
+                    - "null"
+                call_recording_url:
+                  type:
+                    - string
+                    - "null"
+                client_feedback:
+                  type:
+                    - string
+                    - "null"
+                outcome_notes:
+                  type:
+                    - string
+                    - "null"
+                booked_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                pipeline:
+                  type: object
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                    currency:
+                      type: string
+                      enum: *a3
+                    status:
+                      type:
+                        - string
+                        - "null"
+                      enum: *a4
+              additionalProperties: false
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/clients:
+    get:
+      tags:
+        - clients
+      summary: List clients
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - Active
+              - Inactive
+              - all
+          required: false
+          name: status
+          in: query
+        - schema:
+            type: string
+            enum: *a5
+          required: false
+          name: client_type
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: industry
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: parent_client_id
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: search
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+          required: false
+          name: offset
+          in: query
+      responses:
+        "200":
+          description: Page of clients
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientListResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - clients
+      summary: Create a client
+      security:
+        - apiKey: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                industry:
+                  type: string
+                  minLength: 1
+                primary_contact:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                    email:
+                      type: string
+                      minLength: 1
+                    phone:
+                      type: string
+                      minLength: 1
+                  required:
+                    - name
+                    - email
+                    - phone
+                status:
+                  type: string
+                  enum: *a6
+                  default: Active
+                client_type:
+                  type: string
+                  enum: *a5
+                  default: client
+                parent_client_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                start_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                renewal_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                renewal_status:
+                  type: string
+                  enum: *a7
+                  default: Pending
+                mrr_gbp:
+                  type: number
+                  default: 0
+                logo:
+                  type:
+                    - string
+                    - "null"
+                internal_notes:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - name
+                - industry
+                - primary_contact
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/clients/{id}:
+    get:
+      tags:
+        - clients
+      summary: Get a single client
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: Client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - clients
+      summary: Update a client
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                industry:
+                  type: string
+                  minLength: 1
+                primary_contact:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                    email:
+                      type: string
+                      minLength: 1
+                    phone:
+                      type: string
+                      minLength: 1
+                status:
+                  type: string
+                  enum: *a6
+                client_type:
+                  type: string
+                  enum: *a5
+                parent_client_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                start_date:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                renewal_date:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                renewal_status:
+                  type: string
+                  enum: *a7
+                mrr_gbp:
+                  type: number
+                logo:
+                  type:
+                    - string
+                    - "null"
+                internal_notes:
+                  type:
+                    - string
+                    - "null"
+                churn_reason:
+                  type:
+                    - string
+                    - "null"
+                  enum: *a8
+                churn_reason_notes:
+                  type:
+                    - string
+                    - "null"
+              additionalProperties: false
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/campaigns:
+    get:
+      tags:
+        - campaigns
+      summary: List campaigns
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: client_id
+          in: query
+        - schema:
+            type: string
+            enum:
+              - active
+              - paused
+              - completed
+              - all
+          required: false
+          name: status
+          in: query
+        - schema:
+            type: string
+            enum: *a9
+          required: false
+          name: campaign_type
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: date_from
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: date_to
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: search
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+          required: false
+          name: offset
+          in: query
+      responses:
+        "200":
+          description: Page of campaigns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignListResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - campaigns
+      summary: Create a campaign
+      security:
+        - apiKey: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                client_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                start_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                end_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                overall_target:
+                  type: integer
+                  minimum: 0
+                status:
+                  type: string
+                  enum: *a10
+                  default: active
+                campaign_type:
+                  type: string
+                  enum: *a9
+                  default: client
+                campaign_manager_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                notes:
+                  type:
+                    - string
+                    - "null"
+                monthly_meeting_target:
+                  type:
+                    - integer
+                    - "null"
+                  minimum: 0
+                monthly_targets:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+              required:
+                - name
+                - client_id
+                - start_date
+                - end_date
+                - overall_target
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/campaigns/{id}:
+    get:
+      tags:
+        - campaigns
+      summary: Get a single campaign
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: Campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - campaigns
+      summary: Update a campaign
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                client_id:
+                  type: string
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                start_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                end_date:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                overall_target:
+                  type: integer
+                  minimum: 0
+                status:
+                  type: string
+                  enum: *a10
+                campaign_type:
+                  type: string
+                  enum: *a9
+                campaign_manager_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                notes:
+                  type:
+                    - string
+                    - "null"
+                monthly_meeting_target:
+                  type:
+                    - integer
+                    - "null"
+                  minimum: 0
+                monthly_targets:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+              additionalProperties: false
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/users:
+    get:
+      tags:
+        - users
+      summary: List users (includes deactivated when asked)
+      description: Pass is_active=false to find deactivated users; is_active=all to
+        include both.
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            enum: *a1
+          required: false
+          name: role
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+              - all
+          required: false
+          name: is_active
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: client_id
+          in: query
+        - schema:
+            type: string
+            enum: *a11
+          required: false
+          name: location
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          required: false
+          name: include_test_accounts
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: search
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+          required: false
+          name: offset
+          in: query
+      responses:
+        "200":
+          description: Page of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - users
+      summary: Invite a user (super-admin scope)
+      description: Requires users:write scope. Creates or reactivates an invitation
+        row; optionally fires invitation email.
+      security:
+        - apiKey: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: *a1
+                client_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                location:
+                  type:
+                    - string
+                    - "null"
+                  enum: *a11
+                visible_campaign_ids:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                meetings_only_access:
+                  type: boolean
+                hide_performance_metrics:
+                  type: boolean
+                send_email:
+                  type: boolean
+                  default: true
+              required:
+                - name
+                - email
+                - role
+      responses:
+        "201":
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/users/{id}:
+    get:
+      tags:
+        - users
+      summary: Get a single user
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - users
+      summary: Update a user (super-admin scope)
+      description: Requires users:write scope. is_active=false routes through
+        toggle-user-ban to keep Supabase auth banned_until in sync.
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                role:
+                  type: string
+                  enum: *a1
+                is_active:
+                  type: boolean
+                client_id:
+                  type:
+                    - string
+                    - "null"
+                  pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                location:
+                  type:
+                    - string
+                    - "null"
+                  enum: *a11
+                visible_campaign_ids:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                meetings_only_access:
+                  type: boolean
+                hide_performance_metrics:
+                  type: boolean
+                can_view_client_overview:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSingleResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/leaderboard:
+    get:
+      tags:
+        - leaderboard
+      summary: Period-aggregated SDR rankings
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - today
+              - yesterday
+              - this_week
+              - last_week
+              - this_month
+              - last_month
+              - this_quarter
+              - last_quarter
+              - this_year
+              - last_year
+              - all_time
+          required: false
+          name: period
+          in: query
+        - schema:
+            type: string
+            enum: *a11
+          required: false
+          name: location
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          required: false
+          name: include_inactive
+          in: query
+      responses:
+        "200":
+          description: Ranked leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/commission:
+    get:
+      tags:
+        - commission
+      summary: Per-SDR monthly target + commission
+      description: Use targets_only=true for the cheap target-only mode.
+      security:
+        - apiKey: []
+      parameters:
+        - schema:
+            type: string
+            pattern: ^\d{4}-\d{2}$
+          required: false
+          name: month
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            example: 11111111-2222-4333-8444-555555555555
+          required: false
+          name: sdr_id
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          required: false
+          name: targets_only
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          required: false
+          name: include_inactive
+          in: query
+      responses:
+        "200":
+          description: Commission rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /openapi.json:
+    get:
+      tags:
+        - system
+      summary: This OpenAPI document (JSON)
+      security: []
+      responses:
+        "200":
+          description: OpenAPI 3.1 document
+          content:
+            application/json:
+              schema: {}
+  /openapi.yaml:
+    get:
+      tags:
+        - system
+      summary: This OpenAPI document (YAML)
+      security: []
+      responses:
+        "200":
+          description: OpenAPI 3.1 document
+          content:
+            application/yaml:
+              schema: {}
+webhooks: {}
