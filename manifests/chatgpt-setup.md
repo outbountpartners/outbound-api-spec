@@ -98,10 +98,10 @@ Operations marked consequential in this spec:
 
 ## Limits & caveats
 
-- ChatGPT Custom GPTs cap at **30 operations** per Action. We have **14 paths × 1-2 methods each = ~22 operations**, comfortably under the limit.
+- ChatGPT Custom GPTs cap at **30 operations** per Action. We currently expose **22 operations across 14 paths**, comfortably under the limit.
 - ChatGPT doesn't currently support `multipart/form-data` uploads in Actions — fine for us, we don't expose any.
 - Rate limits are enforced at the Portal API key (default 600 req/min), not at the OpenAI layer.
-- The OpenAPI doc lists `https://api.outboundpartners.com` first as the server — that domain isn't live yet (planned custom domain). The second server (`sirhkzqpdgarrcyqnjtl.supabase.co/...`) IS live and is what ChatGPT will use until the custom domain CNAME is set up.
+- The OpenAPI doc lists the live Supabase URL (`sirhkzqpdgarrcyqnjtl.supabase.co/functions/v1/api`) as **server[0]**. ChatGPT's Action importer picks server[0] by default, so imports work out-of-the-box. The planned custom domain (`api.outboundpartners.com`) is listed as server[1] for forward compatibility — once the CNAME is provisioned, swap the order.
 
 ## Want write access via MCP instead?
 
@@ -111,7 +111,12 @@ ChatGPT Custom GPT Actions are the simplest integration. If you need agentic flo
 
 | Symptom | Fix |
 |---|---|
-| "Schema validation failed" on import | Check the spec is valid: `redocly lint openapi.yaml` (zero errors expected) |
-| 401 on every call | API key not set under Action → Authentication, OR header name wrong (must be exactly `x-api-key`) |
+| "Schema validation failed" on import | Check the spec is valid: `redocly lint openapi.yaml` — **zero errors expected** (warnings about missing description fields on individual schemas are fine). |
+| 401 on every call | API key not set under Action → Authentication, OR header name wrong (must be exactly `x-api-key`). |
 | 403 on write actions | Your key lacks the required write scope. Issue a new key with the right scopes via `/api`. |
-| Action invocation blocked | You're hitting the consequential confirmation — that's working as designed. Confirm in the dialog. |
+| 403 `forbidden_super_admin_required` on `/v1/users` writes | The `users:write` scope alone is not enough — the issuing key must also be flagged as super-admin. Re-issue from `/api` while signed in as a super_admin. |
+| 422 `validation_failed` with `details` array | The body or query failed schema validation. The `details` array tells you exactly which fields and why. |
+| 429 Too Many Requests | You're over the per-key rate limit (default 600 rpm). Either back off or request a higher limit on the key. |
+| 409 `idempotency_conflict` | You re-used an `Idempotency-Key` with a different request body. Pick a new key per logical request. |
+| 409 `idempotency_in_flight` | A previous request with this key is still being processed. Wait a few seconds and retry. |
+| Action invocation blocked / confirmation dialog | You're hitting the consequential confirmation — that's working as designed. Confirm in the dialog. |

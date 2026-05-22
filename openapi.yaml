@@ -11,19 +11,28 @@ info:
   contact:
     name: Rai
     email: rai@outboundpartners.com
+  license:
+    name: Proprietary — internal use only
 servers:
-  - url: https://api.outboundpartners.com
-    description: Production (custom domain — planned)
   - url: https://sirhkzqpdgarrcyqnjtl.supabase.co/functions/v1/api
-    description: Direct Supabase edge function URL
+    description: Supabase edge function (live)
+  - url: https://api.outboundpartners.com
+    description: Production custom domain (planned — CNAME not yet provisioned)
 tags:
   - name: meetings
+    description: Meeting bookings, outcomes, feedback, and pipeline.
   - name: clients
+    description: Client accounts, contacts, renewals, churn reasons.
   - name: campaigns
+    description: Per-client outbound campaigns + monthly targets.
   - name: users
+    description: Portal user invitations + role/visibility management (super-admin only).
   - name: leaderboard
+    description: SDR rankings aggregated by period (day/week/month/quarter/year).
   - name: commission
+    description: Per-SDR monthly target attainment and commission calc (UK/SA tiers).
   - name: system
+    description: Health, key introspection, and the OpenAPI spec itself.
 components:
   securitySchemes:
     apiKey:
@@ -362,7 +371,7 @@ components:
           type: string
         status:
           type: string
-          enum: &a6
+          enum: &a7
             - Active
             - Inactive
         client_type:
@@ -390,7 +399,7 @@ components:
           type:
             - string
             - "null"
-          enum: &a7
+          enum: &a6
             - Pending
             - Renewed
             - Did not renew
@@ -869,6 +878,7 @@ components:
 paths:
   /health:
     get:
+      operationId: health_check
       tags:
         - system
       summary: Liveness check
@@ -883,6 +893,7 @@ paths:
                 $ref: "#/components/schemas/HealthResponse"
   /whoami:
     get:
+      operationId: whoami
       tags:
         - system
       summary: Inspect the calling API key
@@ -903,6 +914,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /v1/meetings:
     get:
+      operationId: meetings_list
       tags:
         - meetings
       summary: List meetings
@@ -1019,6 +1031,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     post:
+      operationId: meetings_create
       tags:
         - meetings
       summary: Create a meeting
@@ -1032,6 +1045,7 @@ paths:
               properties:
                 date:
                   type: string
+                  format: date-time
                 timezone:
                   type: string
                   default: UTC+00:00
@@ -1054,7 +1068,12 @@ paths:
                       type: string
                       default: ""
                     email:
-                      type: string
+                      anyOf:
+                        - type: string
+                          format: email
+                        - type: string
+                          enum:
+                            - ""
                       default: ""
                     phone:
                       type: string
@@ -1145,6 +1164,7 @@ paths:
                 - campaign_id
                 - company_name
                 - contact
+              additionalProperties: false
       responses:
         "201":
           description: Created
@@ -1185,6 +1205,7 @@ paths:
       x-openai-isConsequential: true
   /v1/meetings/{id}:
     get:
+      operationId: meetings_get
       tags:
         - meetings
       summary: Get a single meeting
@@ -1236,6 +1257,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     patch:
+      operationId: meetings_update
       tags:
         - meetings
       summary: Update a meeting
@@ -1259,6 +1281,7 @@ paths:
               properties:
                 date:
                   type: string
+                  format: date-time
                 timezone:
                   type: string
                 client_id:
@@ -1280,7 +1303,12 @@ paths:
                       type: string
                       default: ""
                     email:
-                      type: string
+                      anyOf:
+                        - type: string
+                          format: email
+                        - type: string
+                          enum:
+                            - ""
                       default: ""
                     phone:
                       type: string
@@ -1399,6 +1427,7 @@ paths:
       x-openai-isConsequential: true
   /v1/clients:
     get:
+      operationId: clients_list
       tags:
         - clients
       summary: List clients
@@ -1431,6 +1460,24 @@ paths:
             example: 11111111-2222-4333-8444-555555555555
           required: false
           name: parent_client_id
+          in: query
+        - schema:
+            type: string
+            enum: *a6
+            description: "Filter by renewal_status: Pending / Renewed / Did not renew."
+          required: false
+          name: renewal_status
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+            maximum: 3650
+            description: Only return clients whose renewal_date is within N days from today
+              (useful for churn-risk reports).
+          required: false
+          name: renewal_within_days
           in: query
         - schema:
             type: string
@@ -1490,6 +1537,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     post:
+      operationId: clients_create
       tags:
         - clients
       summary: Create a client
@@ -1514,8 +1562,14 @@ paths:
                       type: string
                       minLength: 1
                     email:
-                      type: string
-                      minLength: 1
+                      anyOf:
+                        - type: string
+                          format: email
+                        - type: string
+                          enum:
+                            - ""
+                        - type: string
+                          minLength: 1
                     phone:
                       type: string
                       minLength: 1
@@ -1525,7 +1579,7 @@ paths:
                     - phone
                 status:
                   type: string
-                  enum: *a6
+                  enum: *a7
                   default: Active
                 client_type:
                   type: string
@@ -1544,7 +1598,7 @@ paths:
                   pattern: ^\d{4}-\d{2}-\d{2}$
                 renewal_status:
                   type: string
-                  enum: *a7
+                  enum: *a6
                   default: Pending
                 mrr_gbp:
                   type: number
@@ -1561,6 +1615,7 @@ paths:
                 - name
                 - industry
                 - primary_contact
+              additionalProperties: false
       responses:
         "201":
           description: Created
@@ -1601,6 +1656,7 @@ paths:
       x-openai-isConsequential: true
   /v1/clients/{id}:
     get:
+      operationId: clients_get
       tags:
         - clients
       summary: Get a single client
@@ -1652,6 +1708,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     patch:
+      operationId: clients_update
       tags:
         - clients
       summary: Update a client
@@ -1684,14 +1741,20 @@ paths:
                       type: string
                       minLength: 1
                     email:
-                      type: string
-                      minLength: 1
+                      anyOf:
+                        - type: string
+                          format: email
+                        - type: string
+                          enum:
+                            - ""
+                        - type: string
+                          minLength: 1
                     phone:
                       type: string
                       minLength: 1
                 status:
                   type: string
-                  enum: *a6
+                  enum: *a7
                 client_type:
                   type: string
                   enum: *a5
@@ -1712,7 +1775,7 @@ paths:
                   pattern: ^\d{4}-\d{2}-\d{2}$
                 renewal_status:
                   type: string
-                  enum: *a7
+                  enum: *a6
                 mrr_gbp:
                   type: number
                 logo:
@@ -1773,6 +1836,7 @@ paths:
       x-openai-isConsequential: true
   /v1/campaigns:
     get:
+      operationId: campaigns_list
       tags:
         - campaigns
       summary: List campaigns
@@ -1870,6 +1934,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     post:
+      operationId: campaigns_create
       tags:
         - campaigns
       summary: Create a campaign
@@ -1929,6 +1994,7 @@ paths:
                 - start_date
                 - end_date
                 - overall_target
+              additionalProperties: false
       responses:
         "201":
           description: Created
@@ -1969,6 +2035,7 @@ paths:
       x-openai-isConsequential: true
   /v1/campaigns/{id}:
     get:
+      operationId: campaigns_get
       tags:
         - campaigns
       summary: Get a single campaign
@@ -2020,6 +2087,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     patch:
+      operationId: campaigns_update
       tags:
         - campaigns
       summary: Update a campaign
@@ -2120,6 +2188,7 @@ paths:
       x-openai-isConsequential: true
   /v1/users:
     get:
+      operationId: users_list
       tags:
         - users
       summary: List users (includes deactivated when asked)
@@ -2222,11 +2291,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     post:
+      operationId: users_invite
       tags:
         - users
       summary: Invite a user (super-admin scope)
-      description: Requires users:write scope. Creates or reactivates an invitation
-        row; optionally fires invitation email.
+      description: Requires users:write scope AND a super-admin-issued API key.
+        Creates or reactivates an invitation row; optionally fires invitation
+        email.
       security:
         - apiKey: []
       requestBody:
@@ -2316,6 +2387,7 @@ paths:
       x-openai-isConsequential: true
   /v1/users/{id}:
     get:
+      operationId: users_get
       tags:
         - users
       summary: Get a single user
@@ -2367,11 +2439,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     patch:
+      operationId: users_update
       tags:
         - users
       summary: Update a user (super-admin scope)
-      description: Requires users:write scope. is_active=false routes through
-        toggle-user-ban to keep Supabase auth banned_until in sync.
+      description: Requires users:write scope AND a super-admin-issued API key.
+        is_active=false routes through toggle-user-ban to keep Supabase auth
+        banned_until in sync.
       security:
         - apiKey: []
       parameters:
@@ -2458,6 +2532,7 @@ paths:
       x-openai-isConsequential: true
   /v1/leaderboard:
     get:
+      operationId: leaderboard_get
       tags:
         - leaderboard
       summary: Period-aggregated SDR rankings
@@ -2534,6 +2609,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /v1/commission:
     get:
+      operationId: commission_get
       tags:
         - commission
       summary: Per-SDR monthly target + commission
@@ -2609,6 +2685,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /openapi.json:
     get:
+      operationId: openapi_json
       tags:
         - system
       summary: This OpenAPI document (JSON)
@@ -2621,6 +2698,7 @@ paths:
               schema: {}
   /openapi.yaml:
     get:
+      operationId: openapi_yaml
       tags:
         - system
       summary: This OpenAPI document (YAML)
